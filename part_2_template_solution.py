@@ -8,6 +8,7 @@ import utils as u
 import new_utils as nu
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import ShuffleSplit, cross_validate, train_test_split
 from sklearn.model_selection import (
     ShuffleSplit,
@@ -77,7 +78,7 @@ class Section2:
 
         # return values:
         # Xtrain, ytrain, Xtest, ytest: the data used to fill the `answer`` dictionary
-
+        answer = {}
         X, y, Xtest, ytest = u.prepare_data()
         Xtrain = nu.scale_data(X)
         Xtest = nu.scale_data(Xtest)
@@ -85,6 +86,22 @@ class Section2:
         ytest = ytest.astype(int)
         print(set(ytrain))
         print(set(ytest))
+        
+        max_Xtrain = np.max(Xtrain)
+        max_Xtest = np.max(Xtest)
+
+        print(f'{max_Xtrain=}')
+        print(f'{max_Xtest=}')
+        answer["nb_classes_train"] = set(ytrain)
+        answer["nb_classes_test"] = set(ytest)
+        answer["class_count_train"] = len(set(ytrain))
+        answer["class_count_test"] = len(set(ytest))
+        answer["length_Xtrain"] = len(Xtrain)
+        answer["length_Xtest"] = len(Xtest)
+        answer["length_ytrain"] = len(ytrain)
+        answer["length_ytest"] = len(ytest)
+        answer["max_Xtrain"] = max_Xtrain
+        answer["max_Xtest"] = max_Xtest
 
         return answer, Xtrain, ytrain, Xtest, ytest
 
@@ -121,11 +138,11 @@ class Section2:
 
 
 
-        for ntrain in train_sizes:
+        for ntrain in ntrain_list:
             answers[ntrain] = {}
-            for ntest in test_sizes:
-                    Xtrain, ytrain = X[:ntrain], y[:ntrain]
-                    Xtest, ytest = X[ntrain:ntrain+ntest], y[ntrain:ntrain+ntest]
+            for ntest in ntest_list:
+                    Xtrain_temp, ytrain_temp = X[:ntrain], y[:ntrain]
+                    Xtest_temp, ytest_temp = Xtest[ntrain:ntrain+ntest], ytest[ntrain:ntrain+ntest]
 
 
                     ## PART F
@@ -133,7 +150,7 @@ class Section2:
                     cv = ShuffleSplit(n_splits=5, test_size=0.2, random_state=self.seed)
                     answer_lr = {}
                     clf_lr = LogisticRegression(max_iter=300, multi_class='ovr', random_state=self.seed)
-                    logistic_regression_results = u.train_simple_classifier_with_cv(Xtrain=Xtrain, ytrain=ytrain, clf=clf_lr, cv=cv)
+                    logistic_regression_results = u.train_simple_classifier_with_cv(Xtrain=Xtrain_temp, ytrain=ytrain_temp, clf=clf_lr, cv=cv)
                     lr_scores = {}
 
                     mean_accuracy = logistic_regression_results['test_score'].mean()
@@ -141,18 +158,25 @@ class Section2:
                     mean_fit_time = logistic_regression_results['fit_time'].mean()
                     std_fit_time = logistic_regression_results['fit_time'].std()
 
+                    clf_lr.fit(Xtrain_temp, ytrain_temp)
+                    predictions_orig = clf_lr.predict(ytrain_temp)
+                    predictions = clf_lr.predict(Xtest_temp)
+                    training_matrix = confusion_matrix(predictions_orig, ytrain_temp)
+                    testing_matrix = confusion_matrix(predictions, ytest_temp)
                     lr_scores['mean_fit_time'] = mean_fit_time
                     lr_scores['std_fit_time'] = std_fit_time
                     lr_scores['mean_accuracy'] = mean_accuracy
                     lr_scores['std_accuracy'] = std_accuracy
                     answer_lr['clf'] = clf_lr
                     answer_lr['cv'] = cv
+                    answer_lr['conf_mat_train'] = training_matrix
+                    answer_lr['conf_mat_test'] = testing_matrix
                     answer_lr['scores'] = lr_scores
 
                     ## PART C
                     clf_c = DecisionTreeClassifier(random_state=self.seed)
                     cv_c = KFold(n_splits=5, shuffle=True, random_state=self.seed)
-                    cv_results = u.train_simple_classifier_with_cv(Xtrain=Xtrain, ytrain=ytrain, clf=clf_c, cv=cv_c)
+                    cv_results = u.train_simple_classifier_with_cv(Xtrain=Xtrain_temp, ytrain=ytrain_temp, clf=clf_c, cv=cv_c)
                     answer_dt_c = {}
                     answer_dt_c['clf'] = clf_c
                     answer_dt_c['cv'] = cv_c
@@ -175,7 +199,7 @@ class Section2:
                     ## PART D
                     clf_d = DecisionTreeClassifier(random_state=self.seed)
                     cv_d = ShuffleSplit(n_splits=5, test_size=0.2, random_state=self.seed)
-                    cv_results_d = u.train_simple_classifier_with_cv(Xtrain=Xtrain, ytrain=ytrain, clf=clf_d, cv=cv_d)
+                    cv_results_d = u.train_simple_classifier_with_cv(Xtrain=Xtrain_temp, ytrain=ytrain_temp, clf=clf_d, cv=cv_d)
 
                     answer_dt_d = {}
 
@@ -220,10 +244,10 @@ class Section2:
 
 
 
-                    unique, counts_train = np.unique(ytrain, return_counts=True)
+                    unique, counts_train = np.unique(ytrain_temp, return_counts=True)
                     class_count_train = dict(zip(unique, counts_train))
 
-                    unique, counts_test = np.unique(ytest, return_counts=True)
+                    unique, counts_test = np.unique(ytest_temp, return_counts=True)
                     class_count_test = dict(zip(unique, counts_test))
 
                     answers[ntrain][ntest] = {

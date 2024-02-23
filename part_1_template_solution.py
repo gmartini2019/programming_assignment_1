@@ -243,7 +243,7 @@ class Section1:
         for k in k_values:
                 print(f"{k=}")
                 clf = DecisionTreeClassifier(random_state=self.seed)
-                cv = KFold(n_splits=k, shuffle=True, random_state=self.seed)
+                cv = ShuffleSplit(n_splits=k, shuffle=True, random_state=self.seed)
 
                 cv_results = u.train_simple_classifier_with_cv(Xtrain=X, ytrain=y, clf=clf, cv=cv)
 
@@ -298,7 +298,7 @@ class Section1:
         clf_rf = RandomForestClassifier(random_state=self.seed)
         clf_dt = DecisionTreeClassifier(random_state=self.seed)
 
-        cv = ShuffleSplit(n_splits=5, test_size=0.2, random_state=self.seed)
+        cv = ShuffleSplit(n_splits=5, random_state=self.seed)
 
         cv_results_rf = u.train_simple_classifier_with_cv(Xtrain=X, ytrain=y, clf=clf_rf, cv=cv)
 
@@ -341,7 +341,9 @@ class Section1:
         answer['scores_RF'] = scores_RF
         answer['scores_DT'] = scores_DT
 
-        if scores_DT['mean_accuracy'] < scores_RF['mean_accuracy']:
+        decision_tree_variance = scores_DT['mean_accuracy'] ** 2
+        random_forest_variance = scores_RF['mean_accuracy'] ** 2
+        if decision_tree_variance < random_forest_variance:
             answer['model_highest_accuracy'] = 'Random Forest'
         else:
             answer['model_highest_accuracy'] = 'Decision Tree'
@@ -357,8 +359,6 @@ class Section1:
             answer['model_fastest'] = 'Random Forest'
 
 
-        clf_rf.fit(Xtrain, ytrain)
-        y_pred_test_orig = clf_rf.predict(Xtest)
 
         return answer
 
@@ -415,7 +415,9 @@ class Section1:
         """
 
         answer = {}
-        clf = RandomForestClassifier(random_state=42)
+        clf = RandomForestClassifier(random_state=self.seed)
+        clf.fit(X,y)
+        clf = RandomForestClassifier(random_state=self.seed)
         cv = 5
         param_grid = {
             'max_depth': [10, 20, 30, None],

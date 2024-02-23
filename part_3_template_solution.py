@@ -114,11 +114,12 @@ class Section3:
         - "score_train" : the topk accuracy score for the training set
         - "score_test" : the topk accuracy score for the testing set
         """
+
         answer = {
-    "clf": "Logistic Regression",  
-    "plot_k_vs_score_train": [],
-    "plot_k_vs_score_test": [],
-}
+                    "clf": "Logistic Regression",  
+                    "plot_k_vs_score_train": [],
+                    "plot_k_vs_score_test": [],
+                 }
         clf_lr = LogisticRegression(max_iter=300, multi_class='ovr', random_state=self.seed)
 
         clf_lr.fit(Xtrain, ytrain)
@@ -144,8 +145,8 @@ class Section3:
         plt.grid(True)
         plt.show()
 
-        rate_of_accuracy_change_test = "To be commented"
-        is_topk_useful_and_why = "To be commented"
+        rate_of_accuracy_change_test = """The rate of accuracy change for testing data measures how a model's prediction accuracy varies on new, unseen data, indicating its ability to generalize and adapt."""
+        is_topk_useful_and_why = """Top-K accuracy is useful because it considers a prediction correct if the true label is within the model's top K guesses, offering a more forgiving metric for evaluating models on complex classification tasks."""
 
         answer = {
             "clf": "clf_lr",
@@ -314,16 +315,13 @@ class Section3:
         ytest: NDArray[np.int32],
     ) -> dict[str, Any]:
         """"""
-        # Enter your code and fill the `answer` dictionary
         answer = {}
         class_labels = np.unique(y)
         class_weights = compute_class_weight(class_weight='balanced', classes=class_labels, y=y)
         class_weights_dict = dict(zip(class_labels, class_weights))
 
-        # Initialize SVC with computed class weights
         clf_svc_weighted = SVC(random_state=42, class_weight=class_weights_dict)
 
-        # Define scoring metrics
         scoring_metrics = {
             'accuracy': make_scorer(accuracy_score),
             'precision': make_scorer(precision_score, average='macro'),
@@ -331,11 +329,9 @@ class Section3:
             'f1': make_scorer(f1_score, average='macro')
         }
 
-        # Perform stratified cross-validation
         cv_stratified = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         cv_results = cross_validate(clf_svc_weighted, X, y, cv=cv_stratified, scoring=scoring_metrics)
 
-        # Extract mean and std of the scores
         scores = {
             'mean_accuracy': np.mean(cv_results['test_accuracy']),
             'std_accuracy': np.std(cv_results['test_accuracy']),
